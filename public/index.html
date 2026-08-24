@@ -500,6 +500,20 @@
       to { transform: rotate(360deg); }
     }
 
+    /* ✅ FEATURE: brief highlight for the existing Deep Link Sniper card
+       when arriving via a notification deep link. Reuses the card's own
+       existing accent color (#38bdf8, already its border-top color) rather
+       than introducing a new color or component. Two pulses (~2.4s), then
+       removed by JS. */
+    @keyframes deepLinkHighlightPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+      50% { box-shadow: 0 0 25px 4px rgba(56, 189, 248, 0.5); }
+    }
+
+    .deep-link-highlight {
+      animation: deepLinkHighlightPulse 1.2s ease-in-out 2;
+    }
+
     .detection-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -734,6 +748,19 @@ const API_BASE = window.location.hostname === 'localhost' || window.location.hos
             const linkInput = document.getElementById('linkInput');
             if (linkInput) {
                 linkInput.value = parsed.href;
+
+                // ✅ FEATURE: scroll to and briefly highlight the EXISTING
+                // Deep Link Sniper card so the user immediately sees where
+                // the prefilled URL landed. Found via .closest('.card') on
+                // the input itself — no new element, no id added, no new
+                // scanner UI. Runs only after the value above has already
+                // been set, and only in this validated-success branch.
+                const sniperCard = linkInput.closest('.card');
+                if (sniperCard) {
+                    sniperCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    sniperCard.classList.add('deep-link-highlight');
+                    setTimeout(() => sniperCard.classList.remove('deep-link-highlight'), 2500);
+                }
             }
             // Deliberately does NOT call scanLink() — the user must click
             // Deep Scan themselves.
