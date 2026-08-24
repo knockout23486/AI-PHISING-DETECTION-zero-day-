@@ -705,6 +705,44 @@ const API_BASE = window.location.hostname === 'localhost' || window.location.hos
         }[tag]));
     }
 
+    // ✅ FEATURE: pre-fill Deep Link Sniper from a `?url=` query parameter —
+    // used when arriving here via a "high-risk" notification click from the
+    // Chrome extension. This ONLY populates the input field; it never calls
+    // scanLink() automatically. The value is treated as fully untrusted:
+    // validated as a real http(s) URL via the URL constructor before being
+    // used anywhere, and set only via `.value =` (a plain property
+    // assignment, not innerHTML), so it can never be interpreted as markup
+    // regardless of its contents. Malformed/invalid values fail silently —
+    // no crash, no field populated, no scan triggered. If no `?url=` is
+    // present, existing page behavior is completely unchanged.
+    (function prefillLinkInputFromQueryParam() {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const rawUrlParam = params.get('url');
+            if (!rawUrlParam) return;
+
+            // URLSearchParams.get() already percent-decodes the value.
+            const parsed = new URL(rawUrlParam);
+
+            // Only ever accept http/https — explicitly reject javascript:,
+            // data:, file:, chrome:, extension:, or any other scheme.
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+                console.warn('Binary Beasts: ignored ?url= parameter with disallowed scheme:', parsed.protocol);
+                return;
+            }
+
+            const linkInput = document.getElementById('linkInput');
+            if (linkInput) {
+                linkInput.value = parsed.href;
+            }
+            // Deliberately does NOT call scanLink() — the user must click
+            // Deep Scan themselves.
+        } catch (e) {
+            // Malformed/invalid ?url= value — fail safely.
+            console.warn('Binary Beasts: ignored malformed ?url= parameter.');
+        }
+    })();
+
     // ⏱️ FIX 2: The API Timeout Wrapper (Prevents UI Freezes)
     async function fetchWithTimeout(url, options, timeout = 25000) { // 25s timeout for AI
         const controller = new AbortController();
