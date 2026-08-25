@@ -655,10 +655,10 @@ app.post('/api/analyze-link', async (req, res) => {
                         // ✅ FIX: Route to any active free model
                        models: [
                                  "thinkingmachines/inkling:free",
-                                "google/gemma-4-31b-it:free",
+                               // "google/gemma-4-31b-it:free",
                                 "nvidia/nemotron-3-ultra-550b-a55b:free",
                                 "google/gemma-4-26b-a4b-it:free",
-                                "openai/gpt-oss-20b:free",
+                               // "openai/gpt-oss-20b:free",
                                 
                             ],
                         messages: [{ role: "user", content: prompt }]
@@ -691,8 +691,8 @@ app.post('/api/analyze-link', async (req, res) => {
                                
                                "thinkingmachines/inkling-small:free",
                                "cohere/north-mini-code:free",
-                              "nvidia/nemotron-3.5-lightning:free",
-                               "nvidia/nemotron-3-nano-30b-a3b:free",
+                             // "nvidia/nemotron-3.5-lightning:free",
+                               //"nvidia/nemotron-3-nano-30b-a3b:free",
                                "openai/gpt-oss-20b:free",
 ],
                             messages: [{ role: "user", content: prompt }]
