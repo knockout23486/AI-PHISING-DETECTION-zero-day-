@@ -336,7 +336,7 @@ try {
             body: JSON.stringify({
                 // Explicit free models list (max 3)
                 models: [
-                  "liquid/lfm-2.5-embedding-350m:free",
+                 // "liquid/lfm-2.5-embedding-350m:free",
                   "thinkingmachines/inkling-small:free",
                     
                    "cohere/north-mini-code:free",
@@ -782,7 +782,7 @@ app.post('/api/analyze-link', async (req, res) => {
                             body: JSON.stringify({
                                 // ✅ FIX: Use an array of explicitly free fallback models
                                 models: [
-                                   "liquid/lfm-2.5-embedding-350m:free",
+                                 //  "liquid/lfm-2.5-embedding-350m:free",
                                    "thinkingmachines/inkling-small:free",
                                    "cohere/north-mini-code:free",
                                   ],
