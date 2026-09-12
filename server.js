@@ -66,7 +66,8 @@ const vipDomains = [
     "instagram.com",
     "roblox.com",
     "discord.com",
-    "steampowered.com"
+    "steampowered.com",
+    "hackersunity.com"
 ];
 
 app.use(express.static('public')); 
