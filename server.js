@@ -260,7 +260,7 @@ async function analyzeWithFallback(prompt) {
         
         // 2. Add the 'v1' apiVersion handshake so it finds the 2.5 model
         const model = genAI.getGenerativeModel(
-            { model: "gemini-2.5-flash" },
+            { model: "gemini-1.5-flash" },
             { apiVersion: 'v1' }
         );
         
