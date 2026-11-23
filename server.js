@@ -1118,7 +1118,7 @@ app.post('/api/ocr', upload.single('image'), async (req, res) => {
             // actual provider-side resource usage, not just our own wait time.
             const result = await Promise.race([
                 model.generateContent(["Extract all readable text from this image. Do not add formatting. Only return the text.", imagePart]),
-                timeout(15000)
+                timeout(25000)
             ]);
             
             cleanupFiles(inputPath, optimizedPath);
