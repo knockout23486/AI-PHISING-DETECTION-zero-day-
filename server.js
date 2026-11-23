@@ -1118,8 +1118,11 @@ app.post('/api/ocr', upload.single('image'), async (req, res) => {
             // actual provider-side resource usage, not just our own wait time.
             const result = await Promise.race([
                 model.generateContent(["Extract all readable text from this image. Do not add formatting. Only return the text.", imagePart]),
-                timeout(25000)
+                timeout(20000)
             ]);
+
+            const extractedText = result?.response?.text()?.trim();
+            if (!extractedText) throw new Error("Empty response from Gemini");
             
             cleanupFiles(inputPath, optimizedPath);
             return res.json({ extractedText: result.response.text().trim(), engine: "Gemini Vision API" });
@@ -1135,19 +1138,22 @@ app.post('/api/ocr', upload.single('image'), async (req, res) => {
             // ==========================================
             // 🔵 TIER 2: OPENROUTER VISION FALLBACK
             // ==========================================
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 45000);
             try {
                 // OpenRouter requires a base64 Data URL for images
                 const base64Image = fs.readFileSync(optimizedPath).toString("base64");
                 const dataUrl = `data:image/png;base64,${base64Image}`;
 
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
                 const openRouterRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
+                      "HTTP-Referer": "http://localhost:3000",
+                        "X-Title": "Binary Beasts Scanner"
                     },
                     body: JSON.stringify({
                     models: [
@@ -1155,6 +1161,8 @@ app.post('/api/ocr', upload.single('image'), async (req, res) => {
                         "nvidia/nemotron-nano-12b-v2-vl:free",
                         "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
                     ],
+                    max_tokens: 2048,
+                    reasoning: { effort: "none" },
                     messages: [
                             {
                                 role: "user",
@@ -1168,17 +1176,11 @@ app.post('/api/ocr', upload.single('image'), async (req, res) => {
                     signal: controller.signal
                 });
 
-                clearTimeout(timeoutId);
-
-                if (!openRouterRes.ok) throw new Error(`OpenRouter HTTP Error ${openRouterRes.status}`);
-
-                const orData = await openRouterRes.json();
-                const extractedText = orData?.choices?.[0]?.message?.content;
-
-                if (!extractedText) throw new Error("Empty response from OpenRouter");
-
+              const { content, modelUsed } = await parseOpenRouterResponse(openRouterRes, "ocr / Tier 2");
                 cleanupFiles(inputPath, optimizedPath);
-                return res.json({ extractedText: extractedText.trim(), engine: "OpenRouter Vision API" });
+                return res.json({ extractedText: content, engine: `OpenRouter Vision (${modelUsed})` });
+
+                
 
             } catch (orError) {
                 console.warn("⚠️ TIER 2 FAILED:", orError.message);
@@ -1190,10 +1192,16 @@ app.post('/api/ocr', upload.single('image'), async (req, res) => {
                 try {
                     if (!worker) throw new Error("Tesseract worker offline");
                     const { data: { text } } = await worker.recognize(optimizedPath);
+                  const cleanedText = (text || "").trim();
+
+
+                  if (!cleanedText) {
+                        cleanupFiles(inputPath, optimizedPath);
+                        return res.status(422).json({ error: "No readable text could be extracted from this image." });
+                    }
                     
                     cleanupFiles(inputPath, optimizedPath);
                     return res.json({ extractedText: text.trim(), engine: "Tesseract Local Fallback" });
-
                 } catch (tesseractError) {
                     console.error("🔴 ALL TIERS FAILED. Total System Overload.", tesseractError);
                     
@@ -1201,6 +1209,8 @@ app.post('/api/ocr', upload.single('image'), async (req, res) => {
                     cleanupFiles(inputPath, optimizedPath);
                     return res.status(500).json({ error: "Servers overloaded. Please paste the text manually." });
                 }
+            } finally {
+              clearTimeout(timeoutId);
             }
         }
 
